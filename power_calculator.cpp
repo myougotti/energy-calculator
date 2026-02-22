@@ -361,7 +361,7 @@ public:
 // ─────────────────────────────────────────────────────────
 void displayMenu(double rate) {
     cout << "\npower calculator  [$" << fixed << setprecision(4) << rate << "/kWh]\n";
-    cout << "─────────────────────────────────\n";
+    cout << "---------------------------------\n";
     cout << "  1  add appliance\n";
     cout << "  2  edit appliance\n";
     cout << "  3  remove appliance\n";
@@ -372,7 +372,7 @@ void displayMenu(double rate) {
     cout << "  8  export CSV report\n";
     cout << "  9  clear all\n";
     cout << "  0  exit\n";
-    cout << "─────────────────────────────────\n";
+    cout << "---------------------------------\n";
     cout << "> ";
 }
 
