@@ -1,4 +1,4 @@
-# Power Consumption Calculator (C++)
+# Power Consumption Calculator 
 
 A console-based application to calculate and track the power consumption and energy costs of household appliances.
 
@@ -129,7 +129,7 @@ This project demonstrates:
 
 ## Author Notes
 
-This project is designed as a portfolio piece for demonstrating C++ proficiency and software engineering principles. It showcases practical application of OOP concepts in a real-world utility program.
+Side Project Just For Fun
 
 ## License
 
