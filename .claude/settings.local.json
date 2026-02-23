@@ -4,7 +4,11 @@
       "Bash(git ls-tree:*)",
       "Bash(git reset:*)",
       "Bash(make:*)",
-      "Bash(g++:*)"
+      "Bash(g++:*)",
+      "Bash(\"/c/msys64/ucrt64/bin/c++.exe\":*)",
+      "Bash(\"/c/msys64/ucrt64/bin/c++.exe\" -std=c++11 -Wall -O2 power_calculator.cpp -o power_calculator.exe -lcomctl32 -lgdi32 -lcomdlg32 -mwindows)",
+      "Bash(PATH=\"/c/msys64/ucrt64/bin:$PATH\")",
+      "Bash(c++.exe:*)"
     ]
   }
 }
