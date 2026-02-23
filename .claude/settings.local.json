@@ -5,7 +5,9 @@
       "Bash(powershell.exe -NoProfile -Command \"& ''C:\\\\Users\\\\Asmyou\\\\Desktop\\\\energy-calc-build\\\\power_calculator.exe'' 2>&1; Write-Host exit:$LASTEXITCODE\")",
       "Bash(\"/c/Program Files/CodeBlocks/MinGW/bin/g++.exe\" -std=c++11 -Wall -Wextra -pedantic -O2 \"c:/Users/Asmyou/OneDrive/Documents/GitHub/energy-calculator/power_calculator.cpp\" -o \"c:/Users/Asmyou/Desktop/energy-calc-build/power_calculator.exe\")",
       "Bash(\"/c/Program Files/CodeBlocks/MinGW/bin/g++.exe\" -std=c++11 -Wall -Wextra -pedantic -O2 -static \"c:/Users/Asmyou/OneDrive/Documents/GitHub/energy-calculator/power_calculator.cpp\" -o \"c:/Users/Asmyou/Desktop/energy-calc-build/power_calculator.exe\")",
-      "Bash(powershell.exe -NoProfile -Command \"echo ''0'' | & ''C:\\\\Users\\\\Asmyou\\\\Desktop\\\\energy-calc-build\\\\power_calculator.exe''\")"
+      "Bash(powershell.exe -NoProfile -Command \"echo ''0'' | & ''C:\\\\Users\\\\Asmyou\\\\Desktop\\\\energy-calc-build\\\\power_calculator.exe''\")",
+      "Bash(powershell.exe -NoProfile -Command \":*)",
+      "Bash(\"/c/Program Files/CodeBlocks/MinGW/bin/g++.exe\" -std=c++11 -Wall -O2 -mwindows -static \"c:/Users/Asmyou/OneDrive/Documents/GitHub/energy-calculator/power_calculator.cpp\" -o \"c:/Users/Asmyou/Desktop/energy-calc-build/power_calculator.exe\" -lcomctl32)"
     ]
   }
 }
