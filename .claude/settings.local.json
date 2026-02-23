@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(git ls-tree:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(make:*)",
+      "Bash(g++:*)"
     ]
   }
 }
