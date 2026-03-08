@@ -7,7 +7,7 @@ CXX = g++
 CXXFLAGS = -std=c++11 -Wall -Wextra -O2
 
 # Linker flags
-LDFLAGS = -lcomctl32 -lgdi32 -lcomdlg32 -mwindows
+LDFLAGS = -lcomctl32 -lgdi32 -lcomdlg32 -luxtheme -ldwmapi -lmsimg32 -mwindows
 
 # Target executable name
 TARGET = power_calculator.exe
