@@ -337,14 +337,6 @@ static HWND     dDlg = nullptr;
 static HWND     dName, dWatts, dHours, dRate, dDflt;
 static DlgData* dData = nullptr;
 
-// Subclass for dialog edit boxes → dark background
-static WNDPROC g_origEditProc = nullptr;
-
-static LRESULT CALLBACK DlgEditSubclass(HWND hw, UINT msg, WPARAM wp, LPARAM lp,
-                                        UINT_PTR, DWORD_PTR) {
-    return DefSubclassProc(hw, msg, wp, lp);
-}
-
 static HWND dMakeLabel(HWND p, const wchar_t* t, int x, int y, int w = 110) {
     HWND h = CreateWindowExW(0, L"STATIC", t, WS_CHILD | WS_VISIBLE | SS_LEFT,
                              x, y, w, 20, p, nullptr,
@@ -787,8 +779,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp) {
 
     // Route colour messages for static labels and edits
     case WM_CTLCOLORSTATIC: {
-        HDC hdc = (HDC)wp;
+        HDC  hdc   = (HDC)wp;
+        HWND hCtrl = (HWND)lp;
         SetBkMode(hdc, TRANSPARENT);
+        // ES_READONLY edit controls (like the summary) send WM_CTLCOLORSTATIC
+        if (hCtrl == hSum) {
+            SetTextColor(hdc, CLR_TEXT);
+            SetBkColor(hdc, CLR_SURFACE);
+            return (LRESULT)brSurface;
+        }
         SetTextColor(hdc, CLR_SUBTEXT);
         return (LRESULT)brBg;
     }
@@ -807,11 +806,69 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp) {
 
     case WM_NOTIFY: {
         auto* nm = (NMHDR*)lp;
+
+        // Custom-draw header — must be checked by hwndFrom, not idFrom,
+        // because the header's idFrom is 0 (not ID_LIST).
+        if (nm->hwndFrom == ListView_GetHeader(hList)) {
+            if (nm->code == NM_CUSTOMDRAW) {
+                auto* cd = (NMCUSTOMDRAW*)lp;
+                switch (cd->dwDrawStage) {
+                case CDDS_PREPAINT:
+                    return CDRF_NOTIFYITEMDRAW;
+                case CDDS_ITEMPREPAINT: {
+                    // Fill header item background
+                    FillRect(cd->hdc, &cd->rc, brSurface);
+                    // Get header text
+                    HDITEMW hdi = {};
+                    wchar_t htxt[64] = {};
+                    hdi.mask       = HDI_TEXT | HDI_FORMAT;
+                    hdi.pszText    = htxt;
+                    hdi.cchTextMax = 64;
+                    Header_GetItem(nm->hwndFrom, (int)cd->dwItemSpec, &hdi);
+                    // Draw text
+                    SetTextColor(cd->hdc, CLR_SUBTEXT);
+                    SetBkMode(cd->hdc, TRANSPARENT);
+                    HFONT oldf = (HFONT)SelectObject(cd->hdc, fSm);
+                    RECT tr = cd->rc;
+                    InflateRect(&tr, -6, 0);
+                    UINT dtFmt = DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS;
+                    if (hdi.fmt & HDF_RIGHT)       dtFmt |= DT_RIGHT;
+                    else if (hdi.fmt & HDF_CENTER) dtFmt |= DT_CENTER;
+                    else                            dtFmt |= DT_LEFT;
+                    DrawTextW(cd->hdc, htxt, -1, &tr, dtFmt);
+                    SelectObject(cd->hdc, oldf);
+                    // Bottom divider
+                    HPEN pen = CreatePen(PS_SOLID, 1, CLR_BORDER);
+                    HPEN op  = (HPEN)SelectObject(cd->hdc, pen);
+                    MoveToEx(cd->hdc, cd->rc.left,  cd->rc.bottom - 1, nullptr);
+                    LineTo  (cd->hdc, cd->rc.right, cd->rc.bottom - 1);
+                    SelectObject(cd->hdc, op);
+                    DeleteObject(pen);
+                    return CDRF_SKIPDEFAULT;
+                }}
+                return CDRF_DODEFAULT;
+            }
+            return 0;
+        }
+
         if (nm->idFrom == ID_LIST) {
             // Double-click to edit
             if (nm->code == NM_DBLCLK) {
                 int i = ListView_GetNextItem(hList, -1, LVNI_SELECTED);
                 if (i >= 0) ShowAppDlg(&g_apps[i]);
+                return 0;
+            }
+            // Keyboard shortcuts: Delete, F2, Ctrl+N
+            if (nm->code == LVN_KEYDOWN) {
+                auto* kd = (NMLVKEYDOWN*)lp;
+                if (kd->wVKey == VK_DELETE) {
+                    SendMessage(hWnd, WM_COMMAND, MAKEWPARAM(ID_DEL, 0), 0);
+                } else if (kd->wVKey == VK_F2) {
+                    int i = ListView_GetNextItem(hList, -1, LVNI_SELECTED);
+                    if (i >= 0) ShowAppDlg(&g_apps[i]);
+                } else if (kd->wVKey == 'N' && (GetKeyState(VK_CONTROL) & 0x8000)) {
+                    SendMessage(hWnd, WM_COMMAND, MAKEWPARAM(ID_ADD, 0), 0);
+                }
                 return 0;
             }
             // Custom-draw rows
@@ -832,47 +889,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp) {
                     return CDRF_NEWFONT;
                 }
                 return CDRF_DODEFAULT;
-            }
-            // Custom-draw header
-            if (nm->hwndFrom == ListView_GetHeader(hList)) {
-                if (nm->code == NM_CUSTOMDRAW) {
-                    auto* cd = (NMCUSTOMDRAW*)lp;
-                    switch (cd->dwDrawStage) {
-                    case CDDS_PREPAINT:
-                        return CDRF_NOTIFYITEMDRAW;
-                    case CDDS_ITEMPREPAINT: {
-                        // Fill header item background
-                        FillRect(cd->hdc, &cd->rc, brSurface);
-                        // Get header text
-                        HDITEMW hdi = {};
-                        wchar_t htxt[64] = {};
-                        hdi.mask       = HDI_TEXT | HDI_FORMAT;
-                        hdi.pszText    = htxt;
-                        hdi.cchTextMax = 64;
-                        Header_GetItem(nm->hwndFrom, (int)cd->dwItemSpec, &hdi);
-                        // Draw text
-                        SetTextColor(cd->hdc, CLR_SUBTEXT);
-                        SetBkMode(cd->hdc, TRANSPARENT);
-                        HFONT oldf = (HFONT)SelectObject(cd->hdc, fSm);
-                        RECT tr = cd->rc;
-                        InflateRect(&tr, -6, 0);
-                        UINT dtFmt = DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS;
-                        if (hdi.fmt & HDF_RIGHT)       dtFmt |= DT_RIGHT;
-                        else if (hdi.fmt & HDF_CENTER) dtFmt |= DT_CENTER;
-                        else                            dtFmt |= DT_LEFT;
-                        DrawTextW(cd->hdc, htxt, -1, &tr, dtFmt);
-                        SelectObject(cd->hdc, oldf);
-                        // Bottom divider
-                        HPEN pen = CreatePen(PS_SOLID, 1, CLR_BORDER);
-                        HPEN op  = (HPEN)SelectObject(cd->hdc, pen);
-                        MoveToEx(cd->hdc, cd->rc.left,  cd->rc.bottom - 1, nullptr);
-                        LineTo  (cd->hdc, cd->rc.right, cd->rc.bottom - 1);
-                        SelectObject(cd->hdc, op);
-                        DeleteObject(pen);
-                        return CDRF_SKIPDEFAULT;
-                    }}
-                    return CDRF_DODEFAULT;
-                }
             }
         }
         return 0;
@@ -937,7 +953,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp) {
                         a.kWh(), a.cDay(), a.cMonth(), a.cYear(), a.co2Yr());
             fclose(f);
             wchar_t wbuf[64];
-            MultiByteToWideChar(CP_ACP, 0, buf, -1, wbuf, 64);
+            MultiByteToWideChar(CP_UTF8, 0, buf, -1, wbuf, 64);
             MessageBoxW(hWnd, (wstring(L"Saved: ") + wbuf).c_str(),
                         L"Export Complete", MB_OK | MB_ICONINFORMATION);
             break;
@@ -958,13 +974,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp) {
                         MB_OK | MB_ICONINFORMATION);
             break;
         }
-        }
-        return 0;
-
-    case WM_KEYDOWN:
-        if (wp == VK_DELETE) {
-            int i = ListView_GetNextItem(hList, -1, LVNI_SELECTED);
-            if (i >= 0) SendMessage(hWnd, WM_COMMAND, MAKEWPARAM(ID_DEL, 0), 0);
         }
         return 0;
 

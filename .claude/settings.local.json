@@ -8,7 +8,24 @@
       "Bash(\"/c/msys64/ucrt64/bin/c++.exe\":*)",
       "Bash(\"/c/msys64/ucrt64/bin/c++.exe\" -std=c++11 -Wall -O2 power_calculator.cpp -o power_calculator.exe -lcomctl32 -lgdi32 -lcomdlg32 -mwindows)",
       "Bash(PATH=\"/c/msys64/ucrt64/bin:$PATH\")",
-      "Bash(c++.exe:*)"
+      "Bash(c++.exe:*)",
+      "Bash(cmd.exe:*)",
+      "Read(//c/Users/Asmyou/AppData/Local/Temp/claude/C--Users-Asmyou-OneDrive-Bureau-Software-Engineering-Coding-Projects-C---Projects-Energy-Consumption-Calculator/tasks/**)",
+      "Read(//c/msys64/mingw64/bin/**)",
+      "Read(//c/mingw64/bin/**)",
+      "Bash(ls /c/TDM-GCC*/bin/g++.exe)",
+      "Read(//c/msys64//**)",
+      "Bash(ls /c/mingw*)",
+      "Bash(/c/msys64/mingw64/bin/g++:*)",
+      "Bash(ls:*)",
+      "Bash(where g++)",
+      "Bash(where cl)",
+      "Bash(where gcc)",
+      "Read(//c/Program Files/**)",
+      "Bash(find /c /d -name \"g++.exe\" -maxdepth 6)",
+      "Bash(\"/c/Program Files/CodeBlocks/MinGW/bin/g++.exe\" -std=c++17 -Wall power_calculator.cpp -o /tmp/pc_test.exe -mwindows -lcomctl32 -luxtheme -ldwmapi)",
+      "Bash(\"/c/Program Files/CodeBlocks/MinGW/bin/g++.exe\" -std=c++17 power_calculator.cpp -o /tmp/pc_test.exe -mwindows -lcomctl32 -luxtheme -ldwmapi)",
+      "Bash(\"/c/Program Files/CodeBlocks/MinGW/bin/g++.exe\" -std=c++17 -O2 power_calculator.cpp -o power_calculator.exe -mwindows -lcomctl32 -luxtheme -ldwmapi)"
     ]
   }
 }
