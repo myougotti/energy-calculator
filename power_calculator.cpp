@@ -93,6 +93,15 @@ enum {
 };
 enum { D_NAME=201, D_WATTS, D_HOURS, D_RATE, D_DFLT };
 
+// ── pages ─────────────────────────────────────────────────────────────────
+enum Page { PAGE_DASHBOARD = 0, PAGE_APPLIANCES, PAGE_SETTINGS };
+static Page g_page = PAGE_DASHBOARD;
+
+const int SIDEBAR_W  = 220;   // sidebar width in pixels
+const int TITLEBAR_H = 52;    // content area page-title height
+
+static int g_sideHover = -1;  // index of hovered nav item (-1 = none)
+
 // ── data model ────────────────────────────────────────────────────────────
 struct Appliance {
     wstring name;

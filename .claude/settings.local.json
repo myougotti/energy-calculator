@@ -25,7 +25,8 @@
       "Bash(find /c /d -name \"g++.exe\" -maxdepth 6)",
       "Bash(\"/c/Program Files/CodeBlocks/MinGW/bin/g++.exe\" -std=c++17 -Wall power_calculator.cpp -o /tmp/pc_test.exe -mwindows -lcomctl32 -luxtheme -ldwmapi)",
       "Bash(\"/c/Program Files/CodeBlocks/MinGW/bin/g++.exe\" -std=c++17 power_calculator.cpp -o /tmp/pc_test.exe -mwindows -lcomctl32 -luxtheme -ldwmapi)",
-      "Bash(\"/c/Program Files/CodeBlocks/MinGW/bin/g++.exe\" -std=c++17 -O2 power_calculator.cpp -o power_calculator.exe -mwindows -lcomctl32 -luxtheme -ldwmapi)"
+      "Bash(\"/c/Program Files/CodeBlocks/MinGW/bin/g++.exe\" -std=c++17 -O2 power_calculator.cpp -o power_calculator.exe -mwindows -lcomctl32 -luxtheme -ldwmapi)",
+      "Bash(\"/c/Program Files/CodeBlocks/MinGW/bin/g++.exe\":*)"
     ]
   }
 }
