@@ -27,26 +27,57 @@
 
 using namespace std;
 
-// ── colour palette ────────────────────────────────────────────────────────
-#define CLR_BG          RGB( 18,  22,  36)   // deep navy background
-#define CLR_SURFACE     RGB( 28,  33,  52)   // card/panel surface
-#define CLR_SURFACE2    RGB( 36,  42,  64)   // slightly lighter surface
-#define CLR_ACCENT      RGB( 99, 102, 241)   // indigo accent
-#define CLR_ACCENT_HOV  RGB(124, 108, 255)   // purple hover
-#define CLR_ACCENT_PRE  RGB( 79,  70, 229)   // pressed
-#define CLR_DANGER      RGB(239,  68,  68)   // red for Remove
-#define CLR_DANGER_HOV  RGB(248, 113, 113)
-#define CLR_SUCCESS     RGB( 34, 197,  94)   // green (not currently used)
-#define CLR_TEXT        RGB(226, 232, 240)   // primary text
-#define CLR_SUBTEXT     RGB(148, 163, 184)   // secondary / label text
-#define CLR_DIMTEXT     RGB( 71,  85, 105)   // very dim text
-#define CLR_ROW_EVEN    RGB( 18,  22,  36)   // same as BG
-#define CLR_ROW_ODD     RGB( 24,  29,  48)   // slightly lighter row
-#define CLR_ROW_SEL     RGB( 55,  58, 128)   // selected row
-#define CLR_BORDER      RGB( 51,  65, 100)   // border/divider
-#define CLR_EDIT_BG     RGB( 22,  27,  44)   // edit box background
-#define CLR_HDR_BG      RGB( 23,  28,  46)   // list header bg
-#define CLR_TOPBAR      RGB( 99, 102, 241)   // 4px accent stripe at top
+// ── theme system ──────────────────────────────────────────────────────────
+struct Theme {
+    COLORREF bg, surface, surfaceHov, accent, accentPre, danger, dangerHov;
+    COLORREF text, subtext, border, editBg, sidebar, rowEven, rowOdd, rowSel;
+    COLORREF cardBlue, cardGreen, cardAmber;
+};
+
+static const Theme DARK = {
+    RGB( 32, 32, 32), // bg
+    RGB( 43, 43, 43), // surface
+    RGB( 48, 48, 48), // surfaceHov
+    RGB( 96,205,255), // accent       #60CDFF
+    RGB( 77,184,232), // accentPre    #4DB8E8
+    RGB(255,102,102), // danger       #FF6666
+    RGB(255,140,140), // dangerHov
+    RGB(255,255,255), // text
+    RGB(157,157,157), // subtext
+    RGB( 61, 61, 61), // border
+    RGB( 30, 30, 30), // editBg
+    RGB( 24, 24, 24), // sidebar
+    RGB( 32, 32, 32), // rowEven
+    RGB( 38, 38, 38), // rowOdd
+    RGB( 55, 85,130), // rowSel
+    RGB( 96,205,255), // cardBlue
+    RGB( 74,222,128), // cardGreen
+    RGB(251,191, 36), // cardAmber
+};
+
+static const Theme LIGHT = {
+    RGB(243,243,243), // bg
+    RGB(255,255,255), // surface
+    RGB(245,245,245), // surfaceHov
+    RGB(  0,120,212), // accent       #0078D4
+    RGB(  0,108,190), // accentPre    #006CBE
+    RGB(196, 43, 28), // danger       #C42B1C
+    RGB(210, 70, 50), // dangerHov
+    RGB( 26, 26, 26), // text
+    RGB( 96, 94, 92), // subtext
+    RGB(224,224,224), // border
+    RGB(251,251,251), // editBg
+    RGB(232,232,232), // sidebar
+    RGB(243,243,243), // rowEven
+    RGB(249,249,249), // rowOdd
+    RGB(204,228,247), // rowSel
+    RGB(  0,120,212), // cardBlue
+    RGB( 22,163, 74), // cardGreen
+    RGB(217,119,  6), // cardAmber
+};
+
+static bool    g_darkMode = true;
+static Theme   T = DARK;   // active theme — always use T.xxx for colors
 
 // ── constants ─────────────────────────────────────────────────────────────
 const double    CO2_FACTOR = 0.386;
@@ -163,7 +194,7 @@ static void LoadData() {
 }
 
 // ── GDI helpers ───────────────────────────────────────────────────────────
-static void RoundRect2(HDC hdc, RECT r, int rx, COLORREF fill, COLORREF border = CLR_BORDER) {
+static void RoundRect2(HDC hdc, RECT r, int rx, COLORREF fill, COLORREF border = (COLORREF)-1) {
     HBRUSH hFill = CreateSolidBrush(fill);
     HPEN   hPen  = (border == (COLORREF)-1) ? (HPEN)GetStockObject(NULL_PEN) : CreatePen(PS_SOLID, 1, border);
     SelectObject(hdc, hFill); SelectObject(hdc, hPen);
@@ -172,10 +203,9 @@ static void RoundRect2(HDC hdc, RECT r, int rx, COLORREF fill, COLORREF border =
 }
 
 static void DrawAccentLine(HDC hdc, int x, int y, int w, int h) {
-    // Horizontal gradient-ish line using GDI gradient fill
     TRIVERTEX tv[2] = {
-        {x,   y,   (COLOR16)(GetRValue(CLR_ACCENT)   << 8), (COLOR16)(GetGValue(CLR_ACCENT)   << 8), (COLOR16)(GetBValue(CLR_ACCENT)   << 8), 0},
-        {x+w, y+h, (COLOR16)(GetRValue(CLR_ACCENT_HOV)<< 8), (COLOR16)(GetGValue(CLR_ACCENT_HOV)<< 8), (COLOR16)(GetBValue(CLR_ACCENT_HOV)<< 8), 0},
+        {x,   y,   (COLOR16)(GetRValue(T.accent) << 8), (COLOR16)(GetGValue(T.accent) << 8), (COLOR16)(GetBValue(T.accent) << 8), 0},
+        {x+w, y+h, (COLOR16)(GetRValue(T.accent) << 8), (COLOR16)(GetGValue(T.accent) << 8), (COLOR16)(GetBValue(T.accent) << 8), 0},
     };
     GRADIENT_RECT gr = {0, 1};
     GdiGradientFill(hdc, tv, 2, &gr, 1, GRADIENT_FILL_RECT_H);
@@ -276,22 +306,19 @@ static void DrawButton(DRAWITEMSTRUCT* di) {
     bool    hov  = g_hover.count(hw) && g_hover[hw];
     bool    pre  = (di->itemState & ODS_SELECTED) != 0;
 
-    // Determine colours
     wchar_t txt[128] = {};
     GetWindowTextW(hw, txt, 128);
     bool isDanger = (GetDlgCtrlID(hw) == ID_DEL);
 
-    COLORREF fill, textClr = CLR_TEXT;
+    COLORREF fill, textClr = T.text;
     if (isDanger)
-        fill = pre ? CLR_DANGER : (hov ? CLR_DANGER_HOV : CLR_DANGER);
+        fill = pre ? T.danger : (hov ? T.dangerHov : T.danger);
     else
-        fill = pre ? CLR_ACCENT_PRE : (hov ? CLR_ACCENT_HOV : CLR_ACCENT);
+        fill = pre ? T.accentPre : (hov ? T.accent : T.accent);
 
-    // Rounded rect background
     SetBkMode(hdc, TRANSPARENT);
     RoundRect2(hdc, rc, 8, fill, (COLORREF)-1);
 
-    // Text
     int ox = pre ? 1 : 0, oy = pre ? 1 : 0;
     RECT tr = {rc.left+ox, rc.top+oy, rc.right+ox, rc.bottom+oy};
     HFONT old = (HFONT)SelectObject(hdc, fBold);
@@ -299,7 +326,6 @@ static void DrawButton(DRAWITEMSTRUCT* di) {
     DrawTextW(hdc, txt, -1, &tr, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
     SelectObject(hdc, old);
 
-    // Focus rect (skip the dotted Windows default)
     if (di->itemState & ODS_FOCUS) {
         RECT fr = { rc.left+3, rc.top+3, rc.right-3, rc.bottom-3 };
         HPEN pen = CreatePen(PS_DOT, 1, RGB(200,200,255));
@@ -413,30 +439,34 @@ LRESULT CALLBACK DlgProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp) {
     case WM_ERASEBKGND: {
         HDC hdc = (HDC)wp;
         RECT rc; GetClientRect(hWnd, &rc);
-        FillRect(hdc, &rc, brBg);
-        // Thin top accent line
+        HBRUSH br = CreateSolidBrush(T.bg);
+        FillRect(hdc, &rc, br);
+        DeleteObject(br);
         RECT top = { rc.left, rc.top, rc.right, rc.top + 3 };
-        FillRect(hdc, &top, brAccent);
+        HBRUSH brA = CreateSolidBrush(T.accent);
+        FillRect(hdc, &top, brA);
+        DeleteObject(brA);
         return 1;
     }
 
     case WM_CTLCOLORSTATIC: {
         HDC hdc = (HDC)wp;
         SetBkMode(hdc, TRANSPARENT);
-        // Checkbox
-        if ((HWND)lp == dDflt) {
-            SetTextColor(hdc, CLR_SUBTEXT);
-            return (LRESULT)brBg;
-        }
-        SetTextColor(hdc, CLR_SUBTEXT);
-        return (LRESULT)brBg;
+        SetTextColor(hdc, T.subtext);
+        static HBRUSH dlgBr = nullptr;
+        if (dlgBr) DeleteObject(dlgBr);
+        dlgBr = CreateSolidBrush(T.bg);
+        return (LRESULT)dlgBr;
     }
 
     case WM_CTLCOLOREDIT: {
         HDC hdc = (HDC)wp;
-        SetTextColor(hdc, CLR_TEXT);
-        SetBkColor(hdc, (COLORREF)CLR_EDIT_BG);
-        return (LRESULT)brEditBg;
+        SetTextColor(hdc, T.text);
+        SetBkColor(hdc, T.editBg);
+        static HBRUSH dlgEditBr = nullptr;
+        if (dlgEditBr) DeleteObject(dlgEditBr);
+        dlgEditBr = CreateSolidBrush(T.editBg);
+        return (LRESULT)dlgEditBr;
     }
 
     case WM_DRAWITEM: {
@@ -574,11 +604,10 @@ static void InitListCols() {
     }
     ListView_SetExtendedListViewStyle(hList,
         LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER);
-    ListView_SetBkColor(hList,     CLR_BG);
-    ListView_SetTextBkColor(hList, CLR_BG);
-    ListView_SetTextColor(hList,   CLR_TEXT);
+    ListView_SetBkColor(hList,     T.bg);
+    ListView_SetTextBkColor(hList, T.bg);
+    ListView_SetTextColor(hList,   T.text);
 
-    // Remove theme so we can custom-draw header
     SetWindowTheme(hList, L"", L"");
     HWND hHdr = ListView_GetHeader(hList);
     if (hHdr) SetWindowTheme(hHdr, L"", L"");
@@ -590,17 +619,14 @@ static void CreateFonts() {
     ncm.cbSize = sizeof(ncm);
     SystemParametersInfoW(SPI_GETNONCLIENTMETRICS, sizeof(ncm), &ncm, 0);
 
-    // UI font  – Segoe UI 10
     fUI = CreateFontW(-13, 0, 0, 0, FW_NORMAL, 0, 0, 0,
                       DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
                       CLEARTYPE_QUALITY, DEFAULT_PITCH, L"Segoe UI");
 
-    // Bold font – Segoe UI 10 Bold
     fBold = CreateFontW(-13, 0, 0, 0, FW_SEMIBOLD, 0, 0, 0,
                         DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
                         CLEARTYPE_QUALITY, DEFAULT_PITCH, L"Segoe UI");
 
-    // Small font – Segoe UI 9
     fSm = CreateFontW(-11, 0, 0, 0, FW_NORMAL, 0, 0, 0,
                       DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
                       CLEARTYPE_QUALITY, DEFAULT_PITCH, L"Segoe UI");
@@ -610,25 +636,30 @@ static void CreateFonts() {
     if (!fSm)   fSm   = fUI;
 }
 
-static void CreateBrushes() {
-    brBg       = CreateSolidBrush(CLR_BG);
-    brSurface  = CreateSolidBrush(CLR_SURFACE);
-    brSurface2 = CreateSolidBrush(CLR_SURFACE2);
-    brAccent   = CreateSolidBrush(CLR_ACCENT);
-    brEditBg   = CreateSolidBrush(CLR_EDIT_BG);
-    brBorder   = CreateSolidBrush(CLR_BORDER);
-}
-
 static void DestroyBrushes() {
     DeleteObject(brBg);      DeleteObject(brSurface);
     DeleteObject(brSurface2);DeleteObject(brAccent);
     DeleteObject(brEditBg);  DeleteObject(brBorder);
 }
 
+static void RebuildBrushes() {
+    DestroyBrushes();
+    brBg       = CreateSolidBrush(T.bg);
+    brSurface  = CreateSolidBrush(T.surface);
+    brSurface2 = CreateSolidBrush(T.surfaceHov);
+    brAccent   = CreateSolidBrush(T.accent);
+    brEditBg   = CreateSolidBrush(T.editBg);
+    brBorder   = CreateSolidBrush(T.border);
+}
+
+static void CreateBrushes() {
+    RebuildBrushes();
+}
+
 // ── paint section label ───────────────────────────────────────────────────
 static void PaintLabel(HDC hdc, HFONT font, const wchar_t* txt, int x, int y) {
     HFONT old = (HFONT)SelectObject(hdc, font);
-    SetTextColor(hdc, CLR_SUBTEXT);
+    SetTextColor(hdc, T.subtext);
     SetBkMode(hdc, TRANSPARENT);
     TextOutW(hdc, x, y, txt, (int)wcslen(txt));
     SelectObject(hdc, old);
@@ -644,14 +675,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp) {
 
         HINSTANCE hi = ((CREATESTRUCT*)lp)->hInstance;
 
-        // ListView (no client-edge so we paint our own border)
         hList = CreateWindowExW(0, WC_LISTVIEWW, L"",
             WS_CHILD | WS_VISIBLE | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_SINGLESEL,
             14, 28, 740, 280, hWnd, (HMENU)ID_LIST, hi, nullptr);
         SendMessage(hList, WM_SETFONT, (WPARAM)fUI, TRUE);
         InitListCols();
 
-        // Owner-draw action buttons
         struct { const wchar_t* lbl; int id; } btnDefs[] = {
             {L"+ Add", ID_ADD}, {L"✎  Edit", ID_EDIT}, {L"Remove", ID_DEL}, {L"Export CSV", ID_EXP}
         };
@@ -663,36 +692,30 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp) {
             SetWindowSubclass(h, BtnSubclass, 1, 0);
         }
 
-        // Summary (read-only multiline edit, no border — styled via WM_CTLCOLOREDIT)
         hSum = CreateWindowExW(0, L"EDIT", L"",
             WS_CHILD | WS_VISIBLE | ES_MULTILINE | ES_READONLY,
             14, 370, 440, 88, hWnd, (HMENU)ID_SUM, hi, nullptr);
         SendMessage(hSum, WM_SETFONT, (WPARAM)fUI, TRUE);
 
-        // Rate label
         HWND hrl = CreateWindowExW(0, L"STATIC", L"Default rate ($/kWh)",
             WS_CHILD | WS_VISIBLE | SS_LEFT,
             468, 370, 200, 20, hWnd, (HMENU)ID_RATELBL, hi, nullptr);
         SendMessage(hrl, WM_SETFONT, (WPARAM)fSm, TRUE);
 
-        // Rate edit
         hRate = CreateWindowExW(0, L"EDIT", L"0.1200",
             WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL,
             468, 398, 150, 30, hWnd, (HMENU)ID_RATE, hi, nullptr);
         SendMessage(hRate, WM_SETFONT, (WPARAM)fUI, TRUE);
 
-        // Rate update button (owner-draw)
         HWND hrb = CreateWindowExW(0, L"BUTTON", L"Update",
             WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_OWNERDRAW,
             468, 436, 150, 34, hWnd, (HMENU)ID_RATEBTN, hi, nullptr);
         SendMessage(hrb, WM_SETFONT, (WPARAM)fBold, TRUE);
         SetWindowSubclass(hrb, BtnSubclass, 1, 0);
 
-        // Status bar
         hStat = CreateWindowExW(0, L"msctls_statusbar32", L"",
             WS_CHILD | WS_VISIBLE | SBARS_SIZEGRIP,
             0, 0, 0, 0, hWnd, (HMENU)ID_STAT, hi, nullptr);
-        // Theme-strip status bar so background can be controlled
         SetWindowTheme(hStat, L"", L"");
 
         LoadData();
@@ -714,7 +737,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp) {
     }
 
     case WM_ERASEBKGND: {
-        // Paint entire background dark
         HDC hdc = (HDC)wp;
         RECT rc; GetClientRect(hWnd, &rc);
         FillRect(hdc, &rc, brBg);
@@ -731,9 +753,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp) {
         DrawAccentLine(hdc, 0, 0, W, 4);
 
         // Section labels
-        PaintLabel(hdc, fSm, L"APPLIANCES",      14, 10);
-        PaintLabel(hdc, fSm, L"SUMMARY",         14,
-                   /* sumY label */ [&] {
+        PaintLabel(hdc, fSm, L"APPLIANCES", 14, 10);
+        PaintLabel(hdc, fSm, L"SUMMARY", 14,
+                   [&] {
                        RECT lr; GetWindowRect(hSum, &lr);
                        POINT p = {lr.left, lr.top};
                        ScreenToClient(hWnd, &p);
@@ -753,49 +775,43 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp) {
                        return p.y - 16;
                    }());
 
-        // Paint summary panel background
         if (hSum) {
             RECT sr; GetWindowRect(hSum, &sr);
             POINT p0 = {sr.left, sr.top}, p1 = {sr.right, sr.bottom};
             ScreenToClient(hWnd, &p0); ScreenToClient(hWnd, &p1);
             RECT sumRc = { p0.x - 2, p0.y - 2, p1.x + 2, p1.y + 2 };
-            // Rounded surface card
-            RoundRect2(hdc, sumRc, 8, CLR_SURFACE, CLR_BORDER);
+            RoundRect2(hdc, sumRc, 8, T.surface, T.border);
         }
 
-        // Paint rate card
         if (hRate) {
             RECT rr; GetWindowRect(hRate, &rr);
             POINT p0 = {rr.left, rr.top}, p1 = {rr.right, rr.bottom};
             ScreenToClient(hWnd, &p0); ScreenToClient(hWnd, &p1);
-            // Rate edit box border
             RECT erRc = { p0.x - 2, p0.y - 2, p1.x + 2, p1.y + 2 };
-            RoundRect2(hdc, erRc, 6, CLR_EDIT_BG, CLR_BORDER);
+            RoundRect2(hdc, erRc, 6, T.editBg, T.border);
         }
 
         EndPaint(hWnd, &ps);
         return 0;
     }
 
-    // Route colour messages for static labels and edits
     case WM_CTLCOLORSTATIC: {
         HDC  hdc   = (HDC)wp;
         HWND hCtrl = (HWND)lp;
         SetBkMode(hdc, TRANSPARENT);
-        // ES_READONLY edit controls (like the summary) send WM_CTLCOLORSTATIC
         if (hCtrl == hSum) {
-            SetTextColor(hdc, CLR_TEXT);
-            SetBkColor(hdc, CLR_SURFACE);
+            SetTextColor(hdc, T.text);
+            SetBkColor(hdc, T.surface);
             return (LRESULT)brSurface;
         }
-        SetTextColor(hdc, CLR_SUBTEXT);
+        SetTextColor(hdc, T.subtext);
         return (LRESULT)brBg;
     }
 
     case WM_CTLCOLOREDIT: {
         HDC hdc = (HDC)wp;
-        SetTextColor(hdc, CLR_TEXT);
-        SetBkColor(hdc, CLR_EDIT_BG);
+        SetTextColor(hdc, T.text);
+        SetBkColor(hdc, T.editBg);
         return (LRESULT)brEditBg;
     }
 
@@ -807,8 +823,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp) {
     case WM_NOTIFY: {
         auto* nm = (NMHDR*)lp;
 
-        // Custom-draw header — must be checked by hwndFrom, not idFrom,
-        // because the header's idFrom is 0 (not ID_LIST).
+        // Custom-draw header — must be checked by hwndFrom, not idFrom
         if (nm->hwndFrom == ListView_GetHeader(hList)) {
             if (nm->code == NM_CUSTOMDRAW) {
                 auto* cd = (NMCUSTOMDRAW*)lp;
@@ -816,17 +831,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp) {
                 case CDDS_PREPAINT:
                     return CDRF_NOTIFYITEMDRAW;
                 case CDDS_ITEMPREPAINT: {
-                    // Fill header item background
                     FillRect(cd->hdc, &cd->rc, brSurface);
-                    // Get header text
                     HDITEMW hdi = {};
                     wchar_t htxt[64] = {};
                     hdi.mask       = HDI_TEXT | HDI_FORMAT;
                     hdi.pszText    = htxt;
                     hdi.cchTextMax = 64;
                     Header_GetItem(nm->hwndFrom, (int)cd->dwItemSpec, &hdi);
-                    // Draw text
-                    SetTextColor(cd->hdc, CLR_SUBTEXT);
+                    SetTextColor(cd->hdc, T.subtext);
                     SetBkMode(cd->hdc, TRANSPARENT);
                     HFONT oldf = (HFONT)SelectObject(cd->hdc, fSm);
                     RECT tr = cd->rc;
@@ -837,8 +849,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp) {
                     else                            dtFmt |= DT_LEFT;
                     DrawTextW(cd->hdc, htxt, -1, &tr, dtFmt);
                     SelectObject(cd->hdc, oldf);
-                    // Bottom divider
-                    HPEN pen = CreatePen(PS_SOLID, 1, CLR_BORDER);
+                    HPEN pen = CreatePen(PS_SOLID, 1, T.border);
                     HPEN op  = (HPEN)SelectObject(cd->hdc, pen);
                     MoveToEx(cd->hdc, cd->rc.left,  cd->rc.bottom - 1, nullptr);
                     LineTo  (cd->hdc, cd->rc.right, cd->rc.bottom - 1);
@@ -852,13 +863,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp) {
         }
 
         if (nm->idFrom == ID_LIST) {
-            // Double-click to edit
             if (nm->code == NM_DBLCLK) {
                 int i = ListView_GetNextItem(hList, -1, LVNI_SELECTED);
                 if (i >= 0) ShowAppDlg(&g_apps[i]);
                 return 0;
             }
-            // Keyboard shortcuts: Delete, F2, Ctrl+N
             if (nm->code == LVN_KEYDOWN) {
                 auto* kd = (NMLVKEYDOWN*)lp;
                 if (kd->wVKey == VK_DELETE) {
@@ -871,21 +880,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp) {
                 }
                 return 0;
             }
-            // Custom-draw rows
             if (nm->code == NM_CUSTOMDRAW) {
                 auto* cd = (NMLVCUSTOMDRAW*)lp;
                 switch (cd->nmcd.dwDrawStage) {
                 case CDDS_PREPAINT:
                     return CDRF_NOTIFYITEMDRAW;
                 case CDDS_ITEMPREPAINT:
-                    if (cd->nmcd.uItemState & CDIS_SELECTED) {
-                        cd->clrTextBk = CLR_ROW_SEL;
-                        cd->clrText   = CLR_TEXT;
-                    } else {
-                        cd->clrTextBk = (cd->nmcd.dwItemSpec % 2 == 0)
-                            ? CLR_ROW_EVEN : CLR_ROW_ODD;
-                        cd->clrText   = CLR_TEXT;
-                    }
+                    cd->clrTextBk = (cd->nmcd.uItemState & CDIS_SELECTED) ? T.rowSel
+                                  : (cd->nmcd.dwItemSpec % 2 == 0) ? T.rowEven : T.rowOdd;
+                    cd->clrText = T.text;
                     return CDRF_NEWFONT;
                 }
                 return CDRF_DODEFAULT;
@@ -991,13 +994,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp) {
 
 // ── entry point ───────────────────────────────────────────────────────────
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int nShow) {
-    // Enable modern common controls (comctl32 v6)
     INITCOMMONCONTROLSEX icc = {};
     icc.dwSize = sizeof(icc);
     icc.dwICC  = ICC_LISTVIEW_CLASSES | ICC_BAR_CLASSES | ICC_WIN95_CLASSES;
     InitCommonControlsEx(&icc);
 
-    // Register dialog window class
     {
         WNDCLASSEXW wc = {};
         wc.cbSize        = sizeof(wc);
@@ -1009,7 +1010,6 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int nShow) {
         RegisterClassExW(&wc);
     }
 
-    // Register main window class — use NULL background (we paint in WM_ERASEBKGND)
     {
         WNDCLASSEXW wc = {};
         wc.cbSize        = sizeof(wc);
@@ -1018,7 +1018,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int nShow) {
         wc.lpszClassName = CLS_MAIN;
         wc.hIcon         = LoadIconW(nullptr, IDI_APPLICATION);
         wc.hCursor       = LoadCursorW(nullptr, IDC_ARROW);
-        wc.hbrBackground = nullptr;   // we paint in WM_ERASEBKGND
+        wc.hbrBackground = nullptr;
         RegisterClassExW(&wc);
     }
 
