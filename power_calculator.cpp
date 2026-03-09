@@ -674,6 +674,87 @@ static void PaintLabel(HDC hdc, HFONT font, const wchar_t* txt, int x, int y) {
     SelectObject(hdc, old);
 }
 
+// ── sidebar drawing ───────────────────────────────────────────────────────
+struct NavItem { const wchar_t* icon; const wchar_t* label; Page page; };
+static const NavItem NAV[] = {
+    { L"\u229E", L"Dashboard",  PAGE_DASHBOARD  },
+    { L"\u2630", L"Appliances", PAGE_APPLIANCES },
+    { L"\u2699", L"Settings",   PAGE_SETTINGS   },
+};
+static const int NAV_COUNT  = 3;
+static const int NAV_ITEM_H = 40;
+static const int NAV_TOP    = 72;  // y of first nav item
+
+static void DrawSidebar(HDC hdc, int H) {
+    RECT sb = { 0, 0, SIDEBAR_W, H };
+    HBRUSH brSb = CreateSolidBrush(T.sidebar);
+    FillRect(hdc, &sb, brSb);
+    DeleteObject(brSb);
+
+    // App title
+    HFONT oldF = (HFONT)SelectObject(hdc, fBold);
+    SetBkMode(hdc, TRANSPARENT);
+    SetTextColor(hdc, T.accent);
+    TextOutW(hdc, 18, 18, L"\u26A1 Energy Calc", 14);
+    SelectObject(hdc, oldF);
+
+    // Divider below title
+    HPEN pen = CreatePen(PS_SOLID, 1, T.border);
+    HPEN oldP = (HPEN)SelectObject(hdc, pen);
+    MoveToEx(hdc, 12, 56, nullptr);
+    LineTo(hdc, SIDEBAR_W - 12, 56);
+    SelectObject(hdc, oldP);
+    DeleteObject(pen);
+
+    // Nav items
+    for (int i = 0; i < NAV_COUNT; i++) {
+        int y = NAV_TOP + i * NAV_ITEM_H;
+        bool active = (NAV[i].page == g_page);
+        bool hov    = (g_sideHover == i);
+
+        if (active || hov) {
+            HBRUSH br = CreateSolidBrush(T.surfaceHov);
+            RECT r = { 0, y, SIDEBAR_W, y + NAV_ITEM_H };
+            FillRect(hdc, &r, br);
+            DeleteObject(br);
+        }
+
+        // Accent pill on active
+        if (active) {
+            HBRUSH brPill = CreateSolidBrush(T.accent);
+            RECT pill = { 0, y + 11, 3, y + NAV_ITEM_H - 11 };
+            FillRect(hdc, &pill, brPill);
+            DeleteObject(brPill);
+        }
+
+        // Icon
+        SelectObject(hdc, fUI);
+        SetTextColor(hdc, active ? T.accent : T.subtext);
+        SetBkMode(hdc, TRANSPARENT);
+        TextOutW(hdc, 18, y + 12, NAV[i].icon, 1);
+
+        // Label
+        SelectObject(hdc, active ? fBold : fUI);
+        SetTextColor(hdc, active ? T.text : T.subtext);
+        TextOutW(hdc, 42, y + 12, NAV[i].label, (int)wcslen(NAV[i].label));
+    }
+
+    // Theme toggle at bottom
+    int ty = H - 44;
+    SelectObject(hdc, fUI);
+    SetTextColor(hdc, T.subtext);
+    const wchar_t* toggleTxt = g_darkMode ? L"\u2600  Light mode" : L"\U0001F319  Dark mode";
+    TextOutW(hdc, 18, ty, toggleTxt, (int)wcslen(toggleTxt));
+
+    // Sidebar right border
+    pen = CreatePen(PS_SOLID, 1, T.border);
+    oldP = (HPEN)SelectObject(hdc, pen);
+    MoveToEx(hdc, SIDEBAR_W - 1, 0, nullptr);
+    LineTo(hdc, SIDEBAR_W - 1, H);
+    SelectObject(hdc, oldP);
+    DeleteObject(pen);
+}
+
 // ── WndProc ───────────────────────────────────────────────────────────────
 LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp) {
     switch (msg) {
@@ -758,8 +839,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp) {
         RECT rc; GetClientRect(hWnd, &rc);
         int W = rc.right;
 
-        // Top accent stripe
-        DrawAccentLine(hdc, 0, 0, W, 4);
+        DrawSidebar(hdc, rc.bottom);
 
         // Section labels
         PaintLabel(hdc, fSm, L"APPLIANCES", 14, 10);
